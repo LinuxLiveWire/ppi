@@ -1,10 +1,10 @@
-#include <iostream>
 #include <QApplication>
 
-using namespace std;
+#include "AppWindow.h"
 
 int main(int argc, char *argv[]) {
-    cout << "Hello, World!" << endl;
     QApplication a(argc, argv);
+    AppWindow appWindow;
+    appWindow.show();
     return a.exec();
 }
