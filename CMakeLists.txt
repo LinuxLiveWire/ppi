@@ -10,7 +10,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 include_directories("winapp")
 
 set(HEADER_FILES winapp/AppWindow.h)
-set(SOURCE_FILES winapp/AppWindow.cpp)
+set(SOURCE_FILES winapp/AppWindow.cpp winapp/TopWidget.h winapp/TopWidget.cpp)
 
 add_executable(ppi main.cpp ${SOURCE_FILES})
 

@@ -7,6 +7,25 @@
 AppWindow::AppWindow(QWidget * parent):
     QMainWindow(parent)
 {
+    CreateWidgets();
+    CreateLayouts();
+    CreateConnections();
+    setWindowTitle(tr("PPI"));
+}
+
+void AppWindow::CreateWidgets()
+{
+    topWidget = new TopWidget(this);
+    setCentralWidget(topWidget);
+}
+
+void AppWindow::CreateLayouts()
+{
+
+}
+
+void AppWindow::CreateConnections()
+{
 
 }
 
