@@ -2,10 +2,14 @@
 // Created by sergey on 04.03.16.
 //
 
-#include <QWidget>
-
 #ifndef PPI_TOPWIDGET_H
 #define PPI_TOPWIDGET_H
+
+#include <QWidget>
+#include <QPlainTextEdit>
+
+#include "Ppi.h"
+
 
 class TopWidget: public QWidget {
 public:
@@ -14,6 +18,9 @@ private:
     void CreateWidgets();
     void CreateLayouts();
     void CreateConnections();
+private:
+    Ppi *   ppi;
+    QPlainTextEdit *   right;
 };
 
 #endif //PPI_TOPWIDGET_H
