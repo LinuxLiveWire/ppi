@@ -5,6 +5,6 @@
 int main(int argc, char *argv[]) {
     QApplication a(argc, argv);
     AppWindow appWindow;
-    appWindow.show();
+    appWindow.showMaximized();
     return a.exec();
 }
