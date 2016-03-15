@@ -33,13 +33,22 @@
 #define SCENE_WIDTH     SCENE_SIDE
 #define SCENE_HEIGHT    SCENE_WIDTH
 
-#define MINIMAL_ZOOM    100000U
-#define ZOOM_STEP       50000U
+#define NM  1.852              // Meters in nautical mile
+#define KM2NM(km) ((km)/NM)    // Killometers to nautical miles
+#define NM2KM(nm) ((nm)*NM)    // Nautical miles to killometers
+
+#define MINIMAL_ZOOM_KM    100000.0
+#define MINIMAL_ZOOM_NM    NM2KM(50000.0)
+#define ZOOM_STEP_KM       50000.0
+#define ZOOM_STEP_NM       NM2KM(50000.0)
 
 #define PEN_WIDTH       2.0
 
+#define	MESH_COLOR      	QColor( 238, 238, 238 )
+#define	MESH_TEXT			QColor( 136, 136, 136 )
+
 #if (RADAR_TYPE==RSP10)
-#   define PULSE_LENGTH    75U  // MAX_LENGTH==150km
+#   define PULSE_LENGTH    75U  // MAX_LENGTH==PPI_RADIUS*PULSE_LENGTH==150km
 #elif ((RADAR_TYPE==P19)||(RADAR_TYPE==TRLK10)||(RADAR_TYPE==EKRAN85))
 #   define PULSE_LENGTH    150U // MAX_LENGTH==300km
 #elif (RADAR_TYPE==P18)
@@ -53,34 +62,34 @@ Q_OBJECT
 public:
     Ppi(QWidget* parent=0);
 typedef enum {
-#if (RADAR_TYPE==RSP10)
-    xZ100, xZ150, xZMax = xZ150,
-#elif ((RADAR_TYPE==P19)||(RADAR_TYPE==TRLK10)||(RADAR_TYPE==EKRAN85))
-    xZ100, xZ150, xZ200, xZ250, xZ300,
-    xZMax = xZ300,
-#elif (RADAR_TYPE==P18)
-    xZ100, xZ150, xZ200, xZ250, xZ300, xZ350,
-    xZ400, xZ450, xZ500, xZ550, xZ600,
-    xZMax = xZ600,
-#elif (RADAR_TYPE==P14)
-    xZ100, xZ150, xZ200, xZ250, xZ300, xZ350,
-    xZ400, xZ450, xZ500, xZ550, xZ600, xZ1000,
-    xZMax = xZ1000,
-#endif // RADAR_TYPE
-    xZMin = xZ100
-} PpiZoomScale;
-    PpiZoomScale getZoomScale() const { return zoomScale; };
+    metric, imperial
+} MeasurementUnit;
+    MeasurementUnit getMeasurementUnit() const { return measurementUnit; }
+    const QVector<qreal>& getZoomScales() const;
 public slots:
-    void changePpiScale(PpiZoomScale);
+    void changePpiScale(quint8);
+    void changeMeasurementUnit(MeasurementUnit);
+    void setPpiBackground(const QBrush&);
+    void drawMesh(bool);
+    void drawMeshText(bool);
+public:
+    void repaintMesh();
+    quint8 getZoomScale() const { return zoomScale; }
 private:
     void scene_initialize();
 private:
-    QVector<quint32>    zoomScaleMaxLength;
+    QVector<qreal>    zoomScaleMaxLengthKm;
+    QVector<qreal>    zoomScaleMaxLengthNm;
     QGraphicsScene *    ppiScene;
     qreal   desktopScale;
     const quint32   MAX_LENGTH;
-    PpiZoomScale    zoomScale;
+    quint8    zoomScale;
+    MeasurementUnit measurementUnit;
     qreal   zoomScaleFactor;
+    QGraphicsItem *  meshParent;
+    QGraphicsItem *  meshTextParent;
+    QVector<QGraphicsItem*> radialMesh;
+    QVector<QGraphicsItem*> radialText;
 };
 
 #endif //PPI_PPI_H

@@ -2,10 +2,10 @@
 
 #include "AppWindow.h"
 
-Q_DECLARE_METATYPE(Ppi::PpiZoomScale)
+Q_DECLARE_METATYPE(Ppi::MeasurementUnit)
 
 int main(int argc, char *argv[]) {
-    qRegisterMetaType<Ppi::PpiZoomScale>("PpiZoomScale");
+    qRegisterMetaType<Ppi::MeasurementUnit>("MeasurementUnit");
 
     QApplication a(argc, argv);
     AppWindow appWindow;

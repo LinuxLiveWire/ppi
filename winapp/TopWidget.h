@@ -6,9 +6,9 @@
 #define PPI_TOPWIDGET_H
 
 #include <QWidget>
-#include <QPlainTextEdit>
 
 #include "Ppi.h"
+#include "PpiControl.h"
 
 
 class TopWidget: public QWidget {
@@ -20,7 +20,7 @@ private:
     void CreateConnections();
 private:
     Ppi *   ppi;
-    QPlainTextEdit *   right;
+    PpiControl *   ppiControl;
 };
 
 #endif //PPI_TOPWIDGET_H

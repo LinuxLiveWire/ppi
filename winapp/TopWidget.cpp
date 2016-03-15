@@ -17,8 +17,7 @@ TopWidget::TopWidget(QWidget* parent):
 void TopWidget::CreateWidgets()
 {
     ppi = new Ppi(this);
-    right = new QPlainTextEdit(this);
-    right->setPlainText("Right");
+    ppiControl = new PpiControl(ppi, this);
 }
 
 void TopWidget::CreateLayouts()
@@ -26,22 +25,27 @@ void TopWidget::CreateLayouts()
     int index;
     QSplitter *  splitter = new QSplitter(Qt::Horizontal, this);
     splitter->addWidget(ppi);
-    splitter->addWidget(right);
+    splitter->addWidget(ppiControl);
     QHBoxLayout *  topLayout = new QHBoxLayout;
     topLayout->addWidget(splitter);
     index = splitter->indexOf(ppi);
     splitter->setCollapsible(index, false);
     splitter->setStretchFactor(index, 2);
-    index = splitter->indexOf(right);
+    index = splitter->indexOf(ppiControl);
     splitter->setCollapsible(index, true);
     splitter->setStretchFactor(index, 1);
-    right->setMaximumWidth(120);
-    right->setMinimumWidth(80);
+    ppiControl->setMaximumWidth(160);
+    ppiControl->setMinimumWidth(80);
     topLayout->setContentsMargins(0, 0, 0, 0);
     setLayout(topLayout);
 }
 
 void TopWidget::CreateConnections()
 {
-
+    connect(ppiControl, SIGNAL(zoomScaleChanged(quint8)),
+            ppi, SLOT(changePpiScale(quint8))
+    );
+    connect(ppiControl, SIGNAL(measurementUnitChanged(Ppi::MeasurementUnit)),
+            ppi, SLOT(changeMeasurementUnit(Ppi::MeasurementUnit))
+    );
 }
