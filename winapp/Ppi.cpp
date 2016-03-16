@@ -6,9 +6,13 @@
 #include <QGraphicsRectItem>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QtMath>
 
 #include "Ppi.h"
 
+template <typename T> int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
 
 Ppi::Ppi(QWidget* parent):
         QGraphicsView(parent),
@@ -86,11 +90,17 @@ void Ppi::repaintMesh()
 
     for(quint32 i=1; dist<=stopZoomScale; ++i) {
         quint32 radius = dist/PULSE_LENGTH;
+        qreal penWidth;
+        if (i%2==0) {
+            penWidth = PEN_WIDTH_THICK;
+        } else {
+            penWidth = PEN_WIDTH;
+        }
         QRectF zoneRect(
                 -qreal(radius)*zoomScaleFactor, -qreal(radius)*zoomScaleFactor,
                 2*qreal(radius)*zoomScaleFactor, 2*qreal(radius)*zoomScaleFactor
         );
-        QGraphicsEllipseItem *  zoneRing = ppiScene->addEllipse(zoneRect, QPen(MESH_COLOR, PEN_WIDTH, Qt::SolidLine));
+        QGraphicsEllipseItem *  zoneRing = ppiScene->addEllipse(zoneRect, QPen(MESH_COLOR, penWidth, Qt::SolidLine));
         zoneRing->setParentItem(meshParent);
         radialMesh.append(zoneRing);
         QGraphicsSimpleTextItem *  rightLabel = ppiScene->addSimpleText(
@@ -101,7 +111,7 @@ void Ppi::repaintMesh()
         rightLabel->setFont(labelFont);
         rightLabel->setBrush(MESH_TEXT);
         QRectF bRect = rightLabel->boundingRect();
-        rightLabel->setPos( qreal(radius)*zoomScaleFactor-bRect.width()/2, 0);
+        rightLabel->setPos( qreal(radius)*zoomScaleFactor-bRect.width(), 0);
         rightLabel->setParentItem(meshTextParent);
         radialText.append(rightLabel);
         QGraphicsSimpleTextItem *  leftLabel = ppiScene->addSimpleText(
@@ -109,10 +119,68 @@ void Ppi::repaintMesh()
         );
         leftLabel->setFont(labelFont);
         leftLabel->setBrush(MESH_TEXT);
-        leftLabel->setPos( -qreal(radius)*zoomScaleFactor-bRect.width()/2, -bRect.height());
+        leftLabel->setPos( -qreal(radius)*zoomScaleFactor, -bRect.height());
         leftLabel->setParentItem(meshTextParent);
         radialText.append(leftLabel);
         dist += zoom_step;
+    }
+    QGraphicsLineItem *  azimutalLine;
+    QGraphicsSimpleTextItem *  azimutalText;
+    qreal radialFrom;
+    for(quint32 i=0; i<36; ++i) {
+        qreal penWidth;
+        if (i%9!=0) {
+            radialFrom = zoomScaleFactor*(getMeasurementUnit()==metric?ZOOM_STEP_KM:ZOOM_STEP_NM)/PULSE_LENGTH;
+        } else {
+            radialFrom = 0.0;
+        }
+        if (i%9==0) {
+            penWidth = PEN_WIDTH_THICK;
+        } else if (i%3==0) {
+            penWidth = PEN_WIDTH;
+        } else {
+            penWidth = PEN_WIDTH_THIN;
+        }
+        azimutalLine = new QGraphicsLineItem(
+                sceneRect().center().x(), sceneRect().center().y()+radialFrom,
+                sceneRect().center().x(), PPI_RADIUS, meshParent );
+        azimutalLine->setPen( QPen(MESH_COLOR, penWidth, Qt::SolidLine) );
+        azimutalLine->setTransform(
+                azimutalLine->transform().\
+                translate( sceneRect().center().x(),sceneRect().center().y() ).\
+                rotate( 10.0 * i ).\
+                translate( -sceneRect().center().x(), -sceneRect().center().y() )
+        );
+        radialMesh.append(azimutalLine);
+        azimutalText = new QGraphicsSimpleTextItem( QString("%1").arg( i*10 ), meshTextParent );
+        QFont labelFont = azimutalText->font();
+        labelFont.setPointSize(labelFont.pointSize()/desktopScale);
+        azimutalText->setFont(labelFont);
+        azimutalText->setBrush(MESH_TEXT);
+        QRectF br = azimutalText->boundingRect();
+        qreal dX = 0., dY= 0.;
+        if (i*10<90. && i*10>0.) {
+            dX=0; dY=-br.height();
+        } else if (i*10<180. && i*10>90.) {
+            dX=0.; dY=0.;
+        } else if (i*10<270. && i*10>180.) {
+            dX=-br.width(); dY=0.;
+        } else if (i*10<360. && i*10>270.) {
+            dX=-br.width(); dY=-br.height();
+        } else if (i*10==0.0) {
+            dX=-br.width()/2.0; dY=-br.height();
+        } else if (i*10==90.0) {
+            dX=0; dY=-br.height()/2.0;
+        } else if (i*10==180.0) {
+            dX=-br.width()/2.0; dY=br.height();
+        } else if (i*10==270.0) {
+            dX=-br.width(); dY=-br.height()/2.0;
+        }
+        azimutalText->setPos(
+                sceneRect().center().x()+dX+qSin(qDegreesToRadians(180.0-10.0*i))*PPI_RADIUS,
+                sceneRect().center().y()+dY+qCos(qDegreesToRadians(180-10.0*i))*PPI_RADIUS
+        );
+        radialText.append(azimutalText);
     }
 }
 

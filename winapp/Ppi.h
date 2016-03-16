@@ -25,7 +25,7 @@
 #define EKRAN85 5
 #define RSP10   6
 
-#define SCENE_BORDER    20
+#define SCENE_BORDER    40
 #define PPI_RADIUS      2000U
 #define PPI_SIDE        (2*PPI_RADIUS)
 
@@ -42,7 +42,9 @@
 #define ZOOM_STEP_KM       50000.0
 #define ZOOM_STEP_NM       NM2KM(50000.0)
 
-#define PEN_WIDTH       2.0
+#define PEN_WIDTH_THIN      1.0
+#define PEN_WIDTH           1.5
+#define PEN_WIDTH_THICK     2.0
 
 #define	MESH_COLOR      	QColor( 238, 238, 238 )
 #define	MESH_TEXT			QColor( 136, 136, 136 )
