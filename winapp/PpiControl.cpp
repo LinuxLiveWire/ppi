@@ -45,8 +45,10 @@ void PpiControl::createWidgets()
     bUnits->setCurrentIndex(bUnits->findData(QVariant::fromValue((int)unit)));
     drawMesh = new QCheckBox("Mesh:", this);
     drawMesh->setChecked(true);
-    drawText = new QCheckBox("Label:", this);
-    drawText->setChecked(true);
+    drawDenseMesh = new QCheckBox("Dense mesh:", this);
+    drawDenseMesh->setChecked(true);
+    drawMeshText = new QCheckBox("Label:", this);
+    drawMeshText->setChecked(true);
 }
 
 void PpiControl::createLayouts()
@@ -61,9 +63,10 @@ void PpiControl::createLayouts()
     controlLayout->setColumnStretch(0, 1);
     controlLayout->setColumnStretch(3, 1);
 
-    QHBoxLayout *  meshControlLayout = new QHBoxLayout;
+    QVBoxLayout *  meshControlLayout = new QVBoxLayout;
     meshControlLayout->addWidget(drawMesh);
-    meshControlLayout->addWidget(drawText);
+    meshControlLayout->addWidget(drawDenseMesh);
+    meshControlLayout->addWidget(drawMeshText);
     QGroupBox *  meshGroup = new QGroupBox("Mesh", this);
     meshGroup->setLayout(meshControlLayout);
 
@@ -85,8 +88,10 @@ void PpiControl::createConnections()
         onMetricChanged();
     });
     connect(drawMesh, SIGNAL(clicked(bool)), ppi, SLOT(drawMesh(bool)));
-    connect(drawMesh, SIGNAL(clicked(bool)), drawText, SLOT(setEnabled(bool)));
-    connect(drawText, SIGNAL(clicked(bool)), ppi, SLOT(drawMeshText(bool)));
+    connect(drawDenseMesh, SIGNAL(clicked(bool)), ppi, SLOT(drawDenseMesh(bool)));
+    connect(drawMesh, SIGNAL(clicked(bool)), drawMeshText, SLOT(setEnabled(bool)));
+    connect(drawMesh, SIGNAL(clicked(bool)), drawDenseMesh, SLOT(setEnabled(bool)));
+    connect(drawMeshText, SIGNAL(clicked(bool)), ppi, SLOT(drawMeshText(bool)));
 }
 
 void PpiControl::onMetricChanged()

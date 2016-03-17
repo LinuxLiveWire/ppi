@@ -25,7 +25,7 @@
 #define EKRAN85 5
 #define RSP10   6
 
-#define SCENE_BORDER    40
+#define SCENE_BORDER    30
 #define PPI_RADIUS      2000U
 #define PPI_SIDE        (2*PPI_RADIUS)
 
@@ -41,13 +41,15 @@
 #define MINIMAL_ZOOM_NM    NM2KM(50000.0)
 #define ZOOM_STEP_KM       50000.0
 #define ZOOM_STEP_NM       NM2KM(50000.0)
+#define ZOOM_DENSE_STEP_KM   10000.0
+#define ZOOM_DENSE_STEP_NM   NM2KM(10000.0)
 
 #define PEN_WIDTH_THIN      1.0
 #define PEN_WIDTH           1.5
 #define PEN_WIDTH_THICK     2.0
 
-#define	MESH_COLOR      	QColor( 238, 238, 238 )
-#define	MESH_TEXT			QColor( 136, 136, 136 )
+#define	MESH_COLOR      	QColor(238, 238, 238, 255)
+#define	MESH_TEXT			QColor(136, 136, 136, 255)
 
 #if (RADAR_TYPE==RSP10)
 #   define PULSE_LENGTH    75U  // MAX_LENGTH==PPI_RADIUS*PULSE_LENGTH==150km
@@ -73,6 +75,7 @@ public slots:
     void changeMeasurementUnit(MeasurementUnit);
     void setPpiBackground(const QBrush&);
     void drawMesh(bool);
+    void drawDenseMesh(bool);
     void drawMeshText(bool);
 public:
     void repaintMesh();
@@ -80,18 +83,20 @@ public:
 private:
     void scene_initialize();
 private:
-    QVector<qreal>    zoomScaleMaxLengthKm;
-    QVector<qreal>    zoomScaleMaxLengthNm;
+    const quint32   MAX_LENGTH; // The maximum possible range of data display
+                                // for current type of radar (compile time)
+    QVector<qreal>  zoomScaleMaxLengthKm; // Metric table of scale
+    QVector<qreal>  zoomScaleMaxLengthNm; // Imperial table of scale
+    qreal   desktopScale; // Coefficient for accurate fitting in current desktop geometry
+    quint8  zoomScale;  // Current scale
+    qreal   zoomScaleFactor; // Coefficient for current desktop scale
+    MeasurementUnit measurementUnit; // Current measurement unit (Metric or Imperial)
     QGraphicsScene *    ppiScene;
-    qreal   desktopScale;
-    const quint32   MAX_LENGTH;
-    quint8    zoomScale;
-    MeasurementUnit measurementUnit;
-    qreal   zoomScaleFactor;
-    QGraphicsItem *  meshParent;
-    QGraphicsItem *  meshTextParent;
-    QVector<QGraphicsItem*> radialMesh;
-    QVector<QGraphicsItem*> radialText;
+    QGraphicsItem *     meshParent;
+    QGraphicsItem *     meshDenseParent;
+    QGraphicsItem *     meshTextParent;
+    QVector<QGraphicsItem*> meshFiber; // Container for mesh elements
+    QVector<QGraphicsItem*> meshText; // Container for mesh text
 };
 
 #endif //PPI_PPI_H

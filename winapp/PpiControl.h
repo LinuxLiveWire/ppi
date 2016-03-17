@@ -31,7 +31,7 @@ private:
     QComboBox *  bZoomScale;
     QComboBox *  bUnits;
     Ppi *  ppi;
-    QCheckBox *  drawMesh, * drawText;
+    QCheckBox *  drawMesh, * drawDenseMesh, * drawMeshText;
 };
 
 #endif //PPI_PPICONTROL_H
