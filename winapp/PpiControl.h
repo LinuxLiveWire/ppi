@@ -8,6 +8,8 @@
 #include <QWidget>
 #include <QComboBox>
 #include <QCheckBox>
+#include <QRadioButton>
+#include <QTimer>
 
 #include "Ppi.h"
 
@@ -17,6 +19,7 @@ class PpiControl: public QWidget {
 signals:
     void zoomScaleChanged(quint8);
     void measurementUnitChanged(Ppi::MeasurementUnit);
+    void rotateScanIndicator(qreal);
 public:
     PpiControl(Ppi*, QWidget* parent = 0);
     void setZoomScale(quint8);
@@ -32,6 +35,9 @@ private:
     QComboBox *  bUnits;
     Ppi *  ppi;
     QCheckBox *  drawMesh, * drawDenseMesh, * drawMeshText;
+    QRadioButton *  lineIndicator, * dotsIndicator, * pointerIndicator;
+    QTimer *  rotationTimer;
+    quint64 counter;
 };
 
 #endif //PPI_PPICONTROL_H

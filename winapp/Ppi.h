@@ -68,6 +68,9 @@ public:
 typedef enum {
     metric, imperial
 } MeasurementUnit;
+typedef enum {
+    line, pointer, dots
+} ScanIndicatorType;
     MeasurementUnit getMeasurementUnit() const { return measurementUnit; }
     const QVector<qreal>& getZoomScales() const;
 public slots:
@@ -77,12 +80,16 @@ public slots:
     void drawMesh(bool);
     void drawDenseMesh(bool);
     void drawMeshText(bool);
+    void changeScanIndicator(ScanIndicatorType);
+    void scanIndicatorRotate(qreal);
 public:
     void repaintMesh();
     quint8 getZoomScale() const { return zoomScale; }
+    ScanIndicatorType getScanIndicatorType() const { return scanIndicatorType; }
 private:
     void scene_initialize();
 private:
+    ScanIndicatorType   scanIndicatorType;
     const quint32   MAX_LENGTH; // The maximum possible range of data display
                                 // for current type of radar (compile time)
     QVector<qreal>  zoomScaleMaxLengthKm; // Metric table of scale
@@ -95,6 +102,12 @@ private:
     QGraphicsItem *     meshParent;
     QGraphicsItem *     meshDenseParent;
     QGraphicsItem *     meshTextParent;
+    QGraphicsItem *     scanIndicatorParent;
+    struct {
+        QGraphicsLineItem *  line;
+        QGraphicsPathItem *  dots;
+        QGraphicsPolygonItem* pointer;
+    } scanIndicator;
     QVector<QGraphicsItem*> meshFiber; // Container for mesh elements
     QVector<QGraphicsItem*> meshText; // Container for mesh text
 };

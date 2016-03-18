@@ -11,9 +11,12 @@
 
 
 Ppi::Ppi(QWidget *parent) :
-        QGraphicsView(parent), MAX_LENGTH(PULSE_LENGTH * PPI_RADIUS),
-        desktopScale(1.0), measurementUnit(metric) {
+        QGraphicsView(parent), scanIndicatorType(line),
+        MAX_LENGTH(PULSE_LENGTH * PPI_RADIUS), desktopScale(1.0), measurementUnit(metric),
+        scanIndicator {nullptr, nullptr, nullptr}
+{
     qreal distance = MINIMAL_ZOOM_NM;
+
     for (int i = 1; distance <= MAX_LENGTH; ++i) {
         zoomScaleMaxLengthNm.append(distance);
         distance += ZOOM_STEP_NM;
@@ -57,7 +60,38 @@ void Ppi::scene_initialize() {
     meshTextParent->setZValue(30.0);
     meshTextParent->setParentItem(meshParent);
 
+    scanIndicatorParent = new QGraphicsRectItem();
+    scanIndicatorParent->setFlags(
+            scanIndicatorParent->flags() | \
+            QGraphicsItem::ItemDoesntPropagateOpacityToChildren | \
+            QGraphicsItem::ItemHasNoContents
+    );
+    scanIndicatorParent->setOpacity(1.0);
+    scanIndicatorParent->setPos(sceneRect.center());
+
+    const QVector<QPointF> triangle = {
+            QPointF(15., -qreal(PPI_RADIUS)), QPointF(sceneRect.center().x(), -qreal(PPI_RADIUS)+45),
+            QPointF(-15., -qreal(PPI_RADIUS)), QPointF(15., -qreal(PPI_RADIUS))
+    };
+    QPolygonF pointerTriangle(triangle);
+    scanIndicator.pointer = new QGraphicsPolygonItem(pointerTriangle, scanIndicatorParent);
+    scanIndicator.pointer->setBrush(Qt::darkRed);
+    //scanIndicator.pointer->setPen(QPen(MESH_COLOR, PEN_WIDTH_THICK, Qt::SolidLine));
+    scanIndicator.pointer->setVisible(false);
+    scanIndicator.line = new QGraphicsLineItem(
+            QLineF(
+                    sceneRect.center().x(), sceneRect.center().y(),
+                    sceneRect.center().x(), -qreal(PPI_RADIUS)
+            ),
+            scanIndicatorParent
+    );
+    scanIndicator.line->setPen(QPen(MESH_COLOR, PEN_WIDTH_THICK, Qt::SolidLine));
+    scanIndicator.dots = new QGraphicsPathItem(scanIndicatorParent);
+    scanIndicator.dots->setBrush(MESH_COLOR);
+    scanIndicator.dots->setVisible(false);
+
     ppiScene->addItem(meshParent);
+    ppiScene->addItem(scanIndicatorParent);
 
     QRect geom = qApp->desktop()->availableGeometry(this);
     desktopScale = qreal(geom.height() + geom.y()) / sceneRect.height();
@@ -103,6 +137,8 @@ void Ppi::repaintMesh() {
                                 zoomScaleMaxLengthKm[zoomScale]:
                                 zoomScaleMaxLengthNm[zoomScale];
 
+    QPainterPath scanIndicatorPoints;
+
     for (quint32 i = 1; dist <= stopZoomScale; ++i) {
         quint32 radius = dist/PULSE_LENGTH;
         qreal penWidth;
@@ -120,6 +156,11 @@ void Ppi::repaintMesh() {
         zoneRing->setParentItem(meshParent);
         zoneRing->setZValue(10.0);
         meshFiber.append(zoneRing);
+
+        scanIndicatorPoints.addEllipse(
+                QPointF(sceneRect().center().x(), -qreal(radius)*zoomScaleFactor),
+                6, 6
+        );
 
         for (quint32 j = 0; min_scale_dist<dist; ++j) {
             quint32 min_radius = min_scale_dist / PULSE_LENGTH;
@@ -162,6 +203,8 @@ void Ppi::repaintMesh() {
         meshText.append(leftLabel);
         dist += scale_step;
     }
+
+    scanIndicator.dots->setPath(scanIndicatorPoints);
 
     QGraphicsSimpleTextItem textSample(QString("%1").arg(360)); // for font metric only
     QFont labelFont = textSample.font();
@@ -259,4 +302,36 @@ void Ppi::drawDenseMesh(bool draw) {
 
 void Ppi::drawMeshText(bool draw) {
     meshTextParent->setVisible(draw);
+}
+
+void Ppi::changeScanIndicator(ScanIndicatorType indicatorType)
+{
+    if (indicatorType==scanIndicatorType) {
+        return;
+    }
+    if (scanIndicatorType==line) {
+        scanIndicator.line->setVisible(false);
+    } else if (scanIndicatorType==dots) {
+        scanIndicator.dots->setVisible(false);
+    } else if (scanIndicatorType==pointer) {
+        scanIndicator.pointer->setVisible(false);
+    }
+    if (indicatorType==line) {
+        scanIndicator.line->setVisible(true);
+    } else if (indicatorType==dots) {
+        scanIndicator.dots->setVisible(true);
+    } else if (indicatorType==pointer) {
+        scanIndicator.pointer->setVisible(true);
+    }
+    scanIndicatorType = indicatorType;
+}
+
+void Ppi::scanIndicatorRotate(qreal angle)
+{
+    static qreal oldAngle = 0.0;
+    qreal diff = angle - oldAngle;
+    scanIndicatorParent->setTransform(
+            scanIndicatorParent->transform().rotate(diff)
+    );
+    oldAngle = angle;
 }

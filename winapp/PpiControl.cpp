@@ -10,11 +10,12 @@
 #include "PpiControl.h"
 
 PpiControl::PpiControl(Ppi *p_ppi, QWidget *parent):
-        QWidget(parent), ppi(p_ppi)
+        QWidget(parent), ppi(p_ppi), counter(0)
 {
     createWidgets();
     createLayouts();
     createConnections();
+    rotationTimer->start(2.44140625);
 }
 
 void PpiControl::createWidgets()
@@ -49,6 +50,19 @@ void PpiControl::createWidgets()
     drawDenseMesh->setChecked(true);
     drawMeshText = new QCheckBox("Label:", this);
     drawMeshText->setChecked(true);
+    lineIndicator = new QRadioButton("Line", this);
+    if (ppi->getScanIndicatorType()==Ppi::line) {
+        lineIndicator->setChecked(true);
+    }
+    dotsIndicator = new QRadioButton("Dots", this);
+    if (ppi->getScanIndicatorType()==Ppi::dots) {
+        dotsIndicator->setChecked(true);
+    }
+    pointerIndicator = new QRadioButton("Pointer", this);
+    if (ppi->getScanIndicatorType()==Ppi::pointer) {
+        pointerIndicator->setChecked(true);
+    }
+    rotationTimer = new QTimer(this);
 }
 
 void PpiControl::createLayouts()
@@ -70,8 +84,16 @@ void PpiControl::createLayouts()
     QGroupBox *  meshGroup = new QGroupBox("Mesh", this);
     meshGroup->setLayout(meshControlLayout);
 
+    QGroupBox *  indicatorGroup = new QGroupBox("Scan indicator", this);
+    QVBoxLayout *  indicatorLayout = new QVBoxLayout;
+    indicatorLayout->addWidget(lineIndicator);
+    indicatorLayout->addWidget(dotsIndicator);
+    indicatorLayout->addWidget(pointerIndicator);
+    indicatorGroup->setLayout(indicatorLayout);
+
     widgetLayout->addLayout(controlLayout);
     widgetLayout->addWidget(meshGroup);
+    widgetLayout->addWidget(indicatorGroup);
     widgetLayout->addStretch(1);
     widgetLayout->setContentsMargins(0, 11, 0, 11);
     setLayout(widgetLayout);
@@ -92,6 +114,27 @@ void PpiControl::createConnections()
     connect(drawMesh, SIGNAL(clicked(bool)), drawMeshText, SLOT(setEnabled(bool)));
     connect(drawMesh, SIGNAL(clicked(bool)), drawDenseMesh, SLOT(setEnabled(bool)));
     connect(drawMeshText, SIGNAL(clicked(bool)), ppi, SLOT(drawMeshText(bool)));
+    connect(lineIndicator, &QRadioButton::clicked, [=](bool on){
+        if (on) {
+            ppi->changeScanIndicator(Ppi::line);
+        }
+    });
+    connect(dotsIndicator, &QRadioButton::clicked, [=](bool on){
+        if (on) {
+            ppi->changeScanIndicator(Ppi::dots);
+        }
+    });
+    connect(pointerIndicator, &QRadioButton::clicked, [=](bool on){
+        if (on) {
+            ppi->changeScanIndicator(Ppi::pointer);
+        }
+    });
+    connect(rotationTimer, &QTimer::timeout, [=](){
+        counter %= 4096;
+        qreal angle = (qreal(counter)/4096.0)*360.;
+        emit rotateScanIndicator(angle);
+        ++counter;
+    });
 }
 
 void PpiControl::onMetricChanged()
