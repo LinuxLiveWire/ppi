@@ -132,7 +132,9 @@ void PpiControl::createConnections()
     connect(rotationTimer, &QTimer::timeout, [=](){
         counter %= 4096;
         qreal angle = (qreal(counter)/4096.0)*360.;
-        emit rotateScanIndicator(angle);
+        if (counter%12==0) {
+            emit rotateScanIndicator(angle);
+        }
         ++counter;
     });
 }

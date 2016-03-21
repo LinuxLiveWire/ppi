@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.2)
 project(ppi)
 
 find_package(Qt5Widgets REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 
@@ -42,4 +43,4 @@ set(SOURCE_FILES winapp/AppWindow.cpp winapp/TopWidget.cpp winapp/Ppi.cpp winapp
 
 add_executable(ppi main.cpp ${SOURCE_FILES})
 
-target_link_libraries(ppi Qt5::Widgets)
+target_link_libraries(ppi Qt5::Widgets Qt5::OpenGL)

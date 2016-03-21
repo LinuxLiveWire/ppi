@@ -6,6 +6,8 @@
 #include <QGraphicsPathItem>
 #include <QApplication>
 #include <QDesktopWidget>
+#include <QOpenGLWidget>
+#include <QGLWidget>
 
 #include "Ppi.h"
 
@@ -28,6 +30,22 @@ Ppi::Ppi(QWidget *parent) :
     }
     zoomScale = zoomScaleMaxLengthKm.size() - 1;
     zoomScaleFactor = qreal(MAX_LENGTH) / qreal(zoomScaleMaxLengthKm[zoomScale]);
+//    QGLFormat fmt;
+//    fmt.setSampleBuffers( true );
+//    fmt.setSamples( 2 );
+//    fmt.setDoubleBuffer( true );
+//    fmt.setAlpha ( true );
+//    fmt.setDepth( true );
+//    fmt.setDirectRendering( true );
+
+//    setViewport(new QGLWidget(QGLFormat(
+//            QGL::SampleBuffers|QGL::DirectRendering|QGL::HasOverlay|QGL::StencilBuffer|QGL::AccumBuffer|QGL::Rgba
+//    )));
+//    setRenderHint( QPainter::Antialiasing, true );
+    setRenderHint( QPainter::TextAntialiasing, true );
+    setRenderHint( QPainter::HighQualityAntialiasing, true );
+    setRenderHint( QPainter::SmoothPixmapTransform, false );
+//    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     scene_initialize();
     setPpiBackground(Qt::black);
     repaintMesh();
@@ -75,8 +93,8 @@ void Ppi::scene_initialize() {
     };
     QPolygonF pointerTriangle(triangle);
     scanIndicator.pointer = new QGraphicsPolygonItem(pointerTriangle, scanIndicatorParent);
-    scanIndicator.pointer->setBrush(Qt::darkRed);
-    //scanIndicator.pointer->setPen(QPen(MESH_COLOR, PEN_WIDTH_THICK, Qt::SolidLine));
+    scanIndicator.pointer->setBrush(MESH_COLOR);
+    scanIndicator.pointer->setPen(QPen(MESH_COLOR, PEN_WIDTH_THICK, Qt::SolidLine));
     scanIndicator.pointer->setVisible(false);
     scanIndicator.line = new QGraphicsLineItem(
             QLineF(
@@ -328,10 +346,7 @@ void Ppi::changeScanIndicator(ScanIndicatorType indicatorType)
 
 void Ppi::scanIndicatorRotate(qreal angle)
 {
-    static qreal oldAngle = 0.0;
-    qreal diff = angle - oldAngle;
     scanIndicatorParent->setTransform(
-            scanIndicatorParent->transform().rotate(diff)
+            QTransform().rotate(angle)
     );
-    oldAngle = angle;
 }
