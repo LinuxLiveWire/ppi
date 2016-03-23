@@ -20,6 +20,7 @@
 #include <QGraphicsRectItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QResizeEvent>
+#include <QWheelEvent>
 #include <QVector>
 
 #include "Magnifier.h"
@@ -105,6 +106,7 @@ public:
 protected:
     void resizeEvent ( QResizeEvent * );
     void createConnection();
+    virtual void wheelEvent(QWheelEvent *) override;
 private:
     void scene_initialize();
 private:
@@ -130,6 +132,7 @@ private:
     QVector<QGraphicsItem*> meshFiber; // Container for mesh elements
     QVector<QGraphicsItem*> meshText; // Container for mesh text
     Magnifier *  zoomWindow;
+    MagnifierWindow *  magnifier;
     ZoomView *  zoomFrame;
 };
 

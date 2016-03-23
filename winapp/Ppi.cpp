@@ -59,6 +59,14 @@ Ppi::Ppi(QWidget *parent) :
     scene_initialize();
     setPpiBackground(Qt::black);
     repaintMesh();
+    magnifier = new MagnifierWindow(this);
+    magnifier->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    magnifier->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    magnifier->setRenderHint(QPainter::Antialiasing, true);
+    magnifier->setScene(scene());
+    magnifier->setVisible(false);
+    magnifier->setWindowFlags(magnifier->windowFlags()|Qt::Window|Qt::FramelessWindowHint);
+
     zoomWindow = new Magnifier(this);
     zoomWindow->setFixedSize(350, 350);
     zoomWindow->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -344,6 +352,7 @@ const QVector<qreal> &Ppi::getZoomScales() const {
 }
 
 void Ppi::setPpiBackground(const QBrush &brush) {
+    setBackgroundBrush(brush);
     ppiScene->setBackgroundBrush(brush);
 }
 
@@ -413,4 +422,21 @@ void Ppi::resizeEvent(QResizeEvent * event)
 {
     zoomWindow->move(0, height()-350);
     QGraphicsView::resizeEvent(event);
+}
+
+void Ppi::wheelEvent(QWheelEvent * event)
+{
+    if (event->delta()>0) {
+        if (!magnifier->isVisible()) {
+            magnifier->setVisible(true);
+        }
+        magnifier->move(event->pos().x()-magnifier->width()/2, event->pos().y()-magnifier->height()/2);
+        QRect magnWin = magnifier->frameGeometry();
+        QRectF map = mapToScene(magnWin).boundingRect();
+        magnifier->fitInView(map);
+    } else {
+        if (magnifier->isVisible()) {
+            magnifier->setVisible(false);
+        }
+    }
 }

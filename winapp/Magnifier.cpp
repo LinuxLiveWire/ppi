@@ -7,6 +7,52 @@
 #include <QDebug>
 #include "Magnifier.h"
 
+MagnifierWindow::MagnifierWindow(QWidget * parent):
+    QGraphicsView(parent)
+{
+    setMinimumSize(QSize(100, 100));
+    setMaximumSize(QSize(250, 250));
+    setTransformationAnchor( QGraphicsView::AnchorViewCenter );
+    //setStyleSheet("QFrame { border: 1.0px solid grey; }");
+    //setFrameStyle(QFrame::NoFrame);
+}
+
+void MagnifierWindow::wheelEvent(QWheelEvent * event)
+{
+    int inout = event->delta();
+    if (inout>0) {
+        setTransform(transform().scale(1.05, 1.05));
+    } else {
+        setTransform(transform().scale(0.95, 0.95));
+    }
+}
+
+void MagnifierWindow::mousePressEvent(QMouseEvent * event)
+{
+    savePos = event->globalPos();
+    unsetCursor();
+    setCursor(Qt::ClosedHandCursor);
+    QGraphicsView::mousePressEvent(event);
+}
+
+void MagnifierWindow::mouseMoveEvent(QMouseEvent * event)
+{
+    QGraphicsView *  parentView = qobject_cast<QGraphicsView*>(parent());
+    const QPoint delta = event->globalPos()-savePos;
+    move(x()+delta.x(), y()+delta.y());
+    savePos = event->globalPos();
+    QPoint center = frameGeometry().center();
+    QPointF moveTo = parentView->mapToScene(center);
+    centerOn(moveTo);
+}
+
+void MagnifierWindow::mouseReleaseEvent(QMouseEvent * event)
+{
+    unsetCursor();
+    setCursor(Qt::ArrowCursor);
+    QGraphicsView::mouseReleaseEvent(event);
+}
+
 Magnifier::Magnifier(QWidget* parent):
     QGraphicsView(parent), doUpdate(true)
 {
