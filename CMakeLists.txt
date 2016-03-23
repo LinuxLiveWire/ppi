@@ -38,8 +38,8 @@ endif(DEFINED RADAR_TYPE)
 
 include_directories("winapp")
 
-set(HEADER_FILES winapp/AppWindow.h winapp/TopWidget.h winapp/Ppi.h)
-set(SOURCE_FILES winapp/AppWindow.cpp winapp/TopWidget.cpp winapp/Ppi.cpp winapp/PpiControl.h winapp/PpiControl.cpp)
+set(HEADER_FILES winapp/AppWindow.h winapp/TopWidget.h winapp/Ppi.h winapp/Magnifier.h)
+set(SOURCE_FILES winapp/AppWindow.cpp winapp/TopWidget.cpp winapp/Ppi.cpp winapp/PpiControl.h winapp/PpiControl.cpp winapp/Magnifier.cpp)
 
 add_executable(ppi main.cpp ${SOURCE_FILES})
 

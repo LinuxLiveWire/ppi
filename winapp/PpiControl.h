@@ -35,6 +35,7 @@ private:
     QComboBox *  bUnits;
     Ppi *  ppi;
     QCheckBox *  drawMesh, * drawDenseMesh, * drawMeshText;
+    QCheckBox *  zoomView;
     QRadioButton *  lineIndicator, * dotsIndicator, * pointerIndicator;
     QTimer *  rotationTimer;
     quint64 counter;

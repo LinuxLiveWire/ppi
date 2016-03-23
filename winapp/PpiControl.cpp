@@ -63,6 +63,8 @@ void PpiControl::createWidgets()
         pointerIndicator->setChecked(true);
     }
     rotationTimer = new QTimer(this);
+
+    zoomView = new QCheckBox("Zoom", this);
 }
 
 void PpiControl::createLayouts()
@@ -94,6 +96,7 @@ void PpiControl::createLayouts()
     widgetLayout->addLayout(controlLayout);
     widgetLayout->addWidget(meshGroup);
     widgetLayout->addWidget(indicatorGroup);
+    widgetLayout->addWidget(zoomView);
     widgetLayout->addStretch(1);
     widgetLayout->setContentsMargins(0, 11, 0, 11);
     setLayout(widgetLayout);
@@ -137,6 +140,7 @@ void PpiControl::createConnections()
         }
         ++counter;
     });
+    connect(zoomView, SIGNAL(clicked(bool)), ppi, SLOT(showZoom(bool)));
 }
 
 void PpiControl::onMetricChanged()

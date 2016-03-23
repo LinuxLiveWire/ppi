@@ -21,6 +21,7 @@ private:
 private:
     Ppi *   ppi;
     PpiControl *   ppiControl;
+    QGraphicsView *  zoomer;
 };
 
 #endif //PPI_TOPWIDGET_H

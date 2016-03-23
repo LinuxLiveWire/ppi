@@ -14,9 +14,15 @@
 #ifndef PPI_PPI_H
 #define PPI_PPI_H
 
+#include <QObject>
 #include <QGraphicsView>
 #include <QGraphicsScene>
-#include "QVector"
+#include <QGraphicsRectItem>
+#include <QGraphicsSceneMouseEvent>
+#include <QResizeEvent>
+#include <QVector>
+
+#include "Magnifier.h"
 
 #define P18     1
 #define P19     2
@@ -44,9 +50,9 @@
 #define ZOOM_DENSE_STEP_KM   10000.0
 #define ZOOM_DENSE_STEP_NM   NM2KM(10000.0)
 
-#define PEN_WIDTH_THIN      1.0
-#define PEN_WIDTH           1.5
-#define PEN_WIDTH_THICK     2.0
+#define PEN_WIDTH_THIN      0.7
+#define PEN_WIDTH           1.0
+#define PEN_WIDTH_THICK     1.4
 
 #define	MESH_COLOR      	QColor(238, 238, 238, 255)
 #define	MESH_TEXT			QColor(136, 136, 136, 255)
@@ -60,6 +66,15 @@
 #elif (RADAR_TYPE==P14)
 #   define PULSE_LENGTH    500U // MAX_LENGTH==1000km
 #endif // RADAR_TYPE
+
+class ZoomView: public QObject, public QGraphicsRectItem {
+    Q_OBJECT
+signals:
+    void viewChanged(const QRectF&);
+protected:
+    QVariant itemChange(GraphicsItemChange , const QVariant &);
+    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *) override;
+};
 
 class Ppi: public QGraphicsView {
 Q_OBJECT
@@ -80,12 +95,16 @@ public slots:
     void drawMesh(bool);
     void drawDenseMesh(bool);
     void drawMeshText(bool);
+    void showZoom(bool);
     void changeScanIndicator(ScanIndicatorType);
     void scanIndicatorRotate(qreal);
 public:
     void repaintMesh();
     quint8 getZoomScale() const { return zoomScale; }
     ScanIndicatorType getScanIndicatorType() const { return scanIndicatorType; }
+protected:
+    void resizeEvent ( QResizeEvent * );
+    void createConnection();
 private:
     void scene_initialize();
 private:
@@ -110,6 +129,8 @@ private:
     } scanIndicator;
     QVector<QGraphicsItem*> meshFiber; // Container for mesh elements
     QVector<QGraphicsItem*> meshText; // Container for mesh text
+    Magnifier *  zoomWindow;
+    ZoomView *  zoomFrame;
 };
 
 #endif //PPI_PPI_H

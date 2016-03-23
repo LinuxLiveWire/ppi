@@ -11,6 +11,16 @@
 
 #include "Ppi.h"
 
+QVariant ZoomView::itemChange(GraphicsItemChange  change, const QVariant & value)
+{
+    return QGraphicsItem::itemChange(change, value);
+}
+
+void ZoomView::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
+{
+    emit viewChanged(sceneBoundingRect()); //&Qt::LeftButton
+    QGraphicsRectItem::mouseMoveEvent(event);
+}
 
 Ppi::Ppi(QWidget *parent) :
         QGraphicsView(parent), scanIndicatorType(line),
@@ -41,14 +51,22 @@ Ppi::Ppi(QWidget *parent) :
 //    setViewport(new QGLWidget(QGLFormat(
 //            QGL::SampleBuffers|QGL::DirectRendering|QGL::HasOverlay|QGL::StencilBuffer|QGL::AccumBuffer|QGL::Rgba
 //    )));
-//    setRenderHint( QPainter::Antialiasing, true );
+    setRenderHint( QPainter::Antialiasing, true );
     setRenderHint( QPainter::TextAntialiasing, true );
-    setRenderHint( QPainter::HighQualityAntialiasing, true );
+//    setRenderHint( QPainter::HighQualityAntialiasing, true );
     setRenderHint( QPainter::SmoothPixmapTransform, false );
 //    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
     scene_initialize();
     setPpiBackground(Qt::black);
     repaintMesh();
+    zoomWindow = new Magnifier(this);
+    zoomWindow->setFixedSize(350, 350);
+    zoomWindow->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    zoomWindow->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    zoomWindow->setRenderHint(QPainter::Antialiasing, true);
+    zoomWindow->setScene(scene());
+    zoomWindow->setVisible(false);
+    createConnection();
 }
 
 void Ppi::scene_initialize() {
@@ -111,6 +129,13 @@ void Ppi::scene_initialize() {
     ppiScene->addItem(meshParent);
     ppiScene->addItem(scanIndicatorParent);
 
+    zoomFrame = new ZoomView();
+    zoomFrame->setPen(QPen(QColor(255, 64, 64), PEN_WIDTH_THICK, Qt::SolidLine));
+    zoomFrame->setData(0, QVariant::fromValue(ZOOM_VIEW_KEY));
+    ppiScene->addItem(zoomFrame);
+    zoomFrame->setFlags(zoomFrame->flags()|QGraphicsItem::ItemIsMovable);
+    zoomFrame->setVisible(false);
+
     QRect geom = qApp->desktop()->availableGeometry(this);
     desktopScale = qreal(geom.height() + geom.y()) / sceneRect.height();
     setRenderHints(renderHints() | QPainter::Antialiasing);
@@ -118,6 +143,18 @@ void Ppi::scene_initialize() {
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scale(desktopScale, desktopScale);
+}
+
+void Ppi::createConnection()
+{
+    connect(zoomWindow, &Magnifier::updateZoomedRegion, [=](const QRectF& view){
+        zoomFrame->setRect(QRectF(view.x()-zoomFrame->pos().x(), view.y()-zoomFrame->pos().y(), view.width(), view.height()));
+    });
+    connect(zoomFrame, &ZoomView::viewChanged, [=](const QRectF& rect){
+        zoomWindow->update(false);
+        zoomWindow->fitInView(rect); //-QMargins(8, 8, 8, 8)
+        zoomWindow->update(true);
+    });
 }
 
 void Ppi::changePpiScale(quint8 newZoomScale) {
@@ -349,4 +386,31 @@ void Ppi::scanIndicatorRotate(qreal angle)
     scanIndicatorParent->setTransform(
             QTransform().rotate(angle)
     );
+}
+
+void Ppi::showZoom(bool show)
+{
+    if (show) {
+        zoomWindow->setVisible(true);
+        zoomWindow->move(0, height()-350);
+        zoomWindow->fitInView(
+                sceneRect().center().x()-200, sceneRect().center().y()-200,
+                400, 400,
+                Qt::KeepAspectRatio
+        );
+        zoomFrame->setRect(
+                QRectF(sceneRect().center().x()-200, sceneRect().center().y()-200,
+                400, 400)// - QMargins(-3, -3, -3, -3)
+        );
+        zoomFrame->setVisible(true);
+    } else {
+        zoomWindow->setVisible(false);
+        zoomFrame->setVisible(false);
+    }
+}
+
+void Ppi::resizeEvent(QResizeEvent * event)
+{
+    zoomWindow->move(0, height()-350);
+    QGraphicsView::resizeEvent(event);
 }
