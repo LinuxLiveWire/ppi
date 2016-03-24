@@ -11,9 +11,10 @@ MagnifierWindow::MagnifierWindow(QWidget * parent):
     QGraphicsView(parent)
 {
     setMinimumSize(QSize(100, 100));
-    setMaximumSize(QSize(250, 250));
+    setMaximumSize(QSize(300, 300));
     setTransformationAnchor( QGraphicsView::AnchorViewCenter );
-    //setStyleSheet("QFrame { border: 1.0px solid grey; }");
+    setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
+    setStyleSheet("QFrame { border: 1px solid red; }");
     //setFrameStyle(QFrame::NoFrame);
 }
 
@@ -21,9 +22,17 @@ void MagnifierWindow::wheelEvent(QWheelEvent * event)
 {
     int inout = event->delta();
     if (inout>0) {
+        QMatrix currMatrix = transform().toAffine();
+        if (currMatrix.m11()>1.0 || currMatrix.m22()>1.0) {
+            return;
+        }
         setTransform(transform().scale(1.05, 1.05));
     } else {
         setTransform(transform().scale(0.95, 0.95));
+        QMatrix current = transform().toAffine();
+        if (current.m11()<minZoom.m11() || current.m22()<minZoom.m22()) {
+            setVisible(false);
+        }
     }
 }
 
@@ -51,6 +60,11 @@ void MagnifierWindow::mouseReleaseEvent(QMouseEvent * event)
     unsetCursor();
     setCursor(Qt::ArrowCursor);
     QGraphicsView::mouseReleaseEvent(event);
+}
+
+void MagnifierWindow::saveMatrix(const QMatrix& matrix)
+{
+    minZoom = matrix;
 }
 
 Magnifier::Magnifier(QWidget* parent):

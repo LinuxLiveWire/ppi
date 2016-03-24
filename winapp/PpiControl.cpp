@@ -140,7 +140,6 @@ void PpiControl::createConnections()
         }
         ++counter;
     });
-    connect(zoomView, SIGNAL(clicked(bool)), ppi, SLOT(showZoom(bool)));
 }
 
 void PpiControl::onMetricChanged()

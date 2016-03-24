@@ -68,14 +68,6 @@
 #   define PULSE_LENGTH    500U // MAX_LENGTH==1000km
 #endif // RADAR_TYPE
 
-class ZoomView: public QObject, public QGraphicsRectItem {
-    Q_OBJECT
-signals:
-    void viewChanged(const QRectF&);
-protected:
-    QVariant itemChange(GraphicsItemChange , const QVariant &);
-    virtual void mouseMoveEvent(QGraphicsSceneMouseEvent *) override;
-};
 
 class Ppi: public QGraphicsView {
 Q_OBJECT
@@ -96,7 +88,6 @@ public slots:
     void drawMesh(bool);
     void drawDenseMesh(bool);
     void drawMeshText(bool);
-    void showZoom(bool);
     void changeScanIndicator(ScanIndicatorType);
     void scanIndicatorRotate(qreal);
 public:
@@ -131,9 +122,7 @@ private:
     } scanIndicator;
     QVector<QGraphicsItem*> meshFiber; // Container for mesh elements
     QVector<QGraphicsItem*> meshText; // Container for mesh text
-    Magnifier *  zoomWindow;
     MagnifierWindow *  magnifier;
-    ZoomView *  zoomFrame;
 };
 
 #endif //PPI_PPI_H

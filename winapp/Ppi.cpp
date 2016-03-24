@@ -11,17 +11,6 @@
 
 #include "Ppi.h"
 
-QVariant ZoomView::itemChange(GraphicsItemChange  change, const QVariant & value)
-{
-    return QGraphicsItem::itemChange(change, value);
-}
-
-void ZoomView::mouseMoveEvent(QGraphicsSceneMouseEvent * event)
-{
-    emit viewChanged(sceneBoundingRect()); //&Qt::LeftButton
-    QGraphicsRectItem::mouseMoveEvent(event);
-}
-
 Ppi::Ppi(QWidget *parent) :
         QGraphicsView(parent), scanIndicatorType(line),
         MAX_LENGTH(PULSE_LENGTH * PPI_RADIUS), desktopScale(1.0), measurementUnit(metric),
@@ -40,13 +29,15 @@ Ppi::Ppi(QWidget *parent) :
     }
     zoomScale = zoomScaleMaxLengthKm.size() - 1;
     zoomScaleFactor = qreal(MAX_LENGTH) / qreal(zoomScaleMaxLengthKm[zoomScale]);
-//    QGLFormat fmt;
-//    fmt.setSampleBuffers( true );
-//    fmt.setSamples( 2 );
-//    fmt.setDoubleBuffer( true );
-//    fmt.setAlpha ( true );
-//    fmt.setDepth( true );
-//    fmt.setDirectRendering( true );
+
+/*    QGLFormat fmt;
+    fmt.setSampleBuffers( true );
+    fmt.setSamples( 2 );
+    fmt.setDoubleBuffer( true );
+    fmt.setAlpha ( true );
+    fmt.setDepth( true );
+    fmt.setDirectRendering( true );
+    setViewport(new QGLWidget(fmt));*/
 
 //    setViewport(new QGLWidget(QGLFormat(
 //            QGL::SampleBuffers|QGL::DirectRendering|QGL::HasOverlay|QGL::StencilBuffer|QGL::AccumBuffer|QGL::Rgba
@@ -65,15 +56,7 @@ Ppi::Ppi(QWidget *parent) :
     magnifier->setRenderHint(QPainter::Antialiasing, true);
     magnifier->setScene(scene());
     magnifier->setVisible(false);
-    magnifier->setWindowFlags(magnifier->windowFlags()|Qt::Window|Qt::FramelessWindowHint);
-
-    zoomWindow = new Magnifier(this);
-    zoomWindow->setFixedSize(350, 350);
-    zoomWindow->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    zoomWindow->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    zoomWindow->setRenderHint(QPainter::Antialiasing, true);
-    zoomWindow->setScene(scene());
-    zoomWindow->setVisible(false);
+    //magnifier->setWindowFlags(magnifier->windowFlags()|Qt::Window|Qt::FramelessWindowHint);
     createConnection();
 }
 
@@ -137,13 +120,6 @@ void Ppi::scene_initialize() {
     ppiScene->addItem(meshParent);
     ppiScene->addItem(scanIndicatorParent);
 
-    zoomFrame = new ZoomView();
-    zoomFrame->setPen(QPen(QColor(255, 64, 64), PEN_WIDTH_THICK, Qt::SolidLine));
-    zoomFrame->setData(0, QVariant::fromValue(ZOOM_VIEW_KEY));
-    ppiScene->addItem(zoomFrame);
-    zoomFrame->setFlags(zoomFrame->flags()|QGraphicsItem::ItemIsMovable);
-    zoomFrame->setVisible(false);
-
     QRect geom = qApp->desktop()->availableGeometry(this);
     desktopScale = qreal(geom.height() + geom.y()) / sceneRect.height();
     setRenderHints(renderHints() | QPainter::Antialiasing);
@@ -155,14 +131,7 @@ void Ppi::scene_initialize() {
 
 void Ppi::createConnection()
 {
-    connect(zoomWindow, &Magnifier::updateZoomedRegion, [=](const QRectF& view){
-        zoomFrame->setRect(QRectF(view.x()-zoomFrame->pos().x(), view.y()-zoomFrame->pos().y(), view.width(), view.height()));
-    });
-    connect(zoomFrame, &ZoomView::viewChanged, [=](const QRectF& rect){
-        zoomWindow->update(false);
-        zoomWindow->fitInView(rect); //-QMargins(8, 8, 8, 8)
-        zoomWindow->update(true);
-    });
+
 }
 
 void Ppi::changePpiScale(quint8 newZoomScale) {
@@ -397,43 +366,26 @@ void Ppi::scanIndicatorRotate(qreal angle)
     );
 }
 
-void Ppi::showZoom(bool show)
-{
-    if (show) {
-        zoomWindow->setVisible(true);
-        zoomWindow->move(0, height()-350);
-        zoomWindow->fitInView(
-                sceneRect().center().x()-200, sceneRect().center().y()-200,
-                400, 400,
-                Qt::KeepAspectRatio
-        );
-        zoomFrame->setRect(
-                QRectF(sceneRect().center().x()-200, sceneRect().center().y()-200,
-                400, 400)// - QMargins(-3, -3, -3, -3)
-        );
-        zoomFrame->setVisible(true);
-    } else {
-        zoomWindow->setVisible(false);
-        zoomFrame->setVisible(false);
-    }
-}
-
 void Ppi::resizeEvent(QResizeEvent * event)
 {
-    zoomWindow->move(0, height()-350);
     QGraphicsView::resizeEvent(event);
 }
 
 void Ppi::wheelEvent(QWheelEvent * event)
 {
     if (event->delta()>0) {
+        bool first = false;
         if (!magnifier->isVisible()) {
             magnifier->setVisible(true);
+            first = true;
         }
         magnifier->move(event->pos().x()-magnifier->width()/2, event->pos().y()-magnifier->height()/2);
         QRect magnWin = magnifier->frameGeometry();
         QRectF map = mapToScene(magnWin).boundingRect();
         magnifier->fitInView(map);
+        if (first) {
+            magnifier->saveMatrix(magnifier->transform().toAffine());
+        }
     } else {
         if (magnifier->isVisible()) {
             magnifier->setVisible(false);

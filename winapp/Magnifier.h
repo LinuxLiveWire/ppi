@@ -10,6 +10,7 @@
 #include <QGraphicsView>
 #include <QMouseEvent>
 #include <QWheelEvent>
+#include <QMatrix>
 
 class MagnifierWindow: public QGraphicsView {
 Q_OBJECT
@@ -20,8 +21,11 @@ protected:
     virtual void mousePressEvent(QMouseEvent *) override;
     virtual void mouseReleaseEvent(QMouseEvent *) override;
     virtual void mouseMoveEvent(QMouseEvent *) override;
+public:
+    void saveMatrix(const QMatrix&);
 private:
     QPoint savePos;
+    QMatrix minZoom;  // zoom level below which window is closed
 };
 
 class Magnifier: public QGraphicsView {
