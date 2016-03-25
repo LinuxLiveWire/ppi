@@ -20,11 +20,11 @@ PpiControl::PpiControl(Ppi *p_ppi, QWidget *parent):
 
 void PpiControl::createWidgets()
 {
-    Ppi::MeasurementUnit unit = ppi->getMeasurementUnit();
+    MeasurementUnit unit = ppi->getMeasurementUnit();
     const QVector<qreal> &zoomScale = ppi->getZoomScales();
     quint8 currentZoomScale = ppi->getZoomScale();
     bZoomScale = new QComboBox(this);
-    if (unit==Ppi::metric) {
+    if (unit==MeasurementUnit::metric) {
         for (int i=0; i<zoomScale.size(); ++i) {
             bZoomScale->addItem(
                     QString("x%1").arg((MINIMAL_ZOOM_KM+i*ZOOM_STEP_KM)/1000.0),
@@ -41,8 +41,8 @@ void PpiControl::createWidgets()
     }
     bZoomScale->setCurrentIndex(currentZoomScale);
     bUnits = new QComboBox(this);
-    bUnits->addItem("Metric", QVariant::fromValue((int)Ppi::metric));
-    bUnits->addItem("Imperial", QVariant::fromValue((int)Ppi::imperial));
+    bUnits->addItem("Metric", QVariant::fromValue((int)MeasurementUnit::metric));
+    bUnits->addItem("Imperial", QVariant::fromValue((int)MeasurementUnit::imperial));
     bUnits->setCurrentIndex(bUnits->findData(QVariant::fromValue((int)unit)));
     drawMesh = new QCheckBox("Mesh:", this);
     drawMesh->setChecked(true);
@@ -51,15 +51,15 @@ void PpiControl::createWidgets()
     drawMeshText = new QCheckBox("Label:", this);
     drawMeshText->setChecked(true);
     lineIndicator = new QRadioButton("Line", this);
-    if (ppi->getScanIndicatorType()==Ppi::line) {
+    if (ppi->getScanIndicatorType()==ScanIndicatorType::line) {
         lineIndicator->setChecked(true);
     }
     dotsIndicator = new QRadioButton("Dots", this);
-    if (ppi->getScanIndicatorType()==Ppi::dots) {
+    if (ppi->getScanIndicatorType()==ScanIndicatorType::dots) {
         dotsIndicator->setChecked(true);
     }
     pointerIndicator = new QRadioButton("Pointer", this);
-    if (ppi->getScanIndicatorType()==Ppi::pointer) {
+    if (ppi->getScanIndicatorType()==ScanIndicatorType::pointer) {
         pointerIndicator->setChecked(true);
     }
     rotationTimer = new QTimer(this);
@@ -109,7 +109,7 @@ void PpiControl::createConnections()
         emit zoomScaleChanged((quint8)index);
     });
     connect(bUnits, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated), [=](int index){
-        emit measurementUnitChanged((Ppi::MeasurementUnit)bUnits->itemData(index).toInt());
+        emit measurementUnitChanged((MeasurementUnit)bUnits->itemData(index).toInt());
         onMetricChanged();
     });
     connect(drawMesh, SIGNAL(clicked(bool)), ppi, SLOT(drawMesh(bool)));
@@ -119,17 +119,17 @@ void PpiControl::createConnections()
     connect(drawMeshText, SIGNAL(clicked(bool)), ppi, SLOT(drawMeshText(bool)));
     connect(lineIndicator, &QRadioButton::clicked, [=](bool on){
         if (on) {
-            ppi->changeScanIndicator(Ppi::line);
+            ppi->changeScanIndicator(ScanIndicatorType::line);
         }
     });
     connect(dotsIndicator, &QRadioButton::clicked, [=](bool on){
         if (on) {
-            ppi->changeScanIndicator(Ppi::dots);
+            ppi->changeScanIndicator(ScanIndicatorType::dots);
         }
     });
     connect(pointerIndicator, &QRadioButton::clicked, [=](bool on){
         if (on) {
-            ppi->changeScanIndicator(Ppi::pointer);
+            ppi->changeScanIndicator(ScanIndicatorType::pointer);
         }
     });
     connect(rotationTimer, &QTimer::timeout, [=](){
@@ -144,11 +144,11 @@ void PpiControl::createConnections()
 
 void PpiControl::onMetricChanged()
 {
-    Ppi::MeasurementUnit unit = ppi->getMeasurementUnit();
+    MeasurementUnit unit = ppi->getMeasurementUnit();
     const QVector<qreal> &zoomScale = ppi->getZoomScales();
     int scaleIndex = bZoomScale->currentData().toInt();
     bZoomScale->clear();
-    if (unit==Ppi::metric) {
+    if (unit==MeasurementUnit::metric) {
         for (int i=0; i<zoomScale.size(); ++i) {
             bZoomScale->addItem(
                     QString("x%1").arg((MINIMAL_ZOOM_KM+i*ZOOM_STEP_KM)/1000.0),
@@ -176,7 +176,7 @@ void PpiControl::setZoomScale(quint8 item)
     }
 }
 
-void PpiControl::setMeasurementUnit(Ppi::MeasurementUnit newUnit)
+void PpiControl::setMeasurementUnit(MeasurementUnit newUnit)
 {
     int index = bUnits->findData(QVariant::fromValue((int)newUnit));
     if (index>=0) {

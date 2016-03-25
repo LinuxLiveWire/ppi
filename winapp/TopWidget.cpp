@@ -45,8 +45,8 @@ void TopWidget::CreateConnections()
     connect(ppiControl, SIGNAL(zoomScaleChanged(quint8)),
             ppi, SLOT(changePpiScale(quint8))
     );
-    connect(ppiControl, SIGNAL(measurementUnitChanged(Ppi::MeasurementUnit)),
-            ppi, SLOT(changeMeasurementUnit(Ppi::MeasurementUnit))
+    connect(ppiControl, SIGNAL(measurementUnitChanged(MeasurementUnit)),
+            ppi, SLOT(changeMeasurementUnit(MeasurementUnit))
     );
     connect(ppiControl, SIGNAL(rotateScanIndicator(qreal)), ppi, SLOT(scanIndicatorRotate(qreal)));
 }

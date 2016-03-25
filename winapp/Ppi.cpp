@@ -6,14 +6,13 @@
 #include <QGraphicsPathItem>
 #include <QApplication>
 #include <QDesktopWidget>
-#include <QOpenGLWidget>
 #include <QGLWidget>
 
 #include "Ppi.h"
 
 Ppi::Ppi(QWidget *parent) :
-        QGraphicsView(parent), scanIndicatorType(line),
-        MAX_LENGTH(PULSE_LENGTH * PPI_RADIUS), desktopScale(1.0), measurementUnit(metric),
+        QGraphicsView(parent), scanIndicatorType(ScanIndicatorType::line),
+        MAX_LENGTH(PULSE_LENGTH * PPI_RADIUS), desktopScale(1.0), measurementUnit(MeasurementUnit::metric),
         scanIndicator {nullptr, nullptr, nullptr}
 {
     qreal distance = MINIMAL_ZOOM_NM;
@@ -38,26 +37,20 @@ Ppi::Ppi(QWidget *parent) :
     fmt.setDepth( true );
     fmt.setDirectRendering( true );
     setViewport(new QGLWidget(fmt));*/
-
 //    setViewport(new QGLWidget(QGLFormat(
 //            QGL::SampleBuffers|QGL::DirectRendering|QGL::HasOverlay|QGL::StencilBuffer|QGL::AccumBuffer|QGL::Rgba
 //    )));
+
     setRenderHint( QPainter::Antialiasing, true );
     setRenderHint( QPainter::TextAntialiasing, true );
-//    setRenderHint( QPainter::HighQualityAntialiasing, true );
     setRenderHint( QPainter::SmoothPixmapTransform, false );
-//    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+
     scene_initialize();
-    setPpiBackground(Qt::black);
     repaintMesh();
-    magnifier = new MagnifierWindow(this);
-    magnifier->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    magnifier->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    magnifier->setRenderHint(QPainter::Antialiasing, true);
-    magnifier->setScene(scene());
+    magnifier = new Magnifier(this);
     magnifier->setVisible(false);
-    //magnifier->setWindowFlags(magnifier->windowFlags()|Qt::Window|Qt::FramelessWindowHint);
     createConnection();
+    setPpiBackground(Qt::black);
 }
 
 void Ppi::scene_initialize() {
@@ -136,12 +129,13 @@ void Ppi::createConnection()
 
 void Ppi::changePpiScale(quint8 newZoomScale) {
     zoomScale = newZoomScale;
-    if (getMeasurementUnit() == metric) {
+    if (getMeasurementUnit() == MeasurementUnit::metric) {
         zoomScaleFactor = qreal(MAX_LENGTH) / qreal(zoomScaleMaxLengthKm[zoomScale]);
     } else {
         zoomScaleFactor = qreal(MAX_LENGTH) / qreal(zoomScaleMaxLengthNm[zoomScale]);
     }
     repaintMesh();
+    magnifier->changePpiScale(newZoomScale);
 }
 
 void Ppi::changeMeasurementUnit(MeasurementUnit newMeasurementUnit) {
@@ -149,6 +143,7 @@ void Ppi::changeMeasurementUnit(MeasurementUnit newMeasurementUnit) {
         return;
     }
     measurementUnit = newMeasurementUnit;
+    magnifier->changeMeasurementUnit(newMeasurementUnit);
 }
 
 void Ppi::repaintMesh() {
@@ -161,11 +156,11 @@ void Ppi::repaintMesh() {
     }
     meshText.clear();
 
-    qreal scale_step = (getMeasurementUnit()==metric)?ZOOM_STEP_KM:ZOOM_STEP_NM;
-    qreal dist = (getMeasurementUnit()==metric)?ZOOM_STEP_KM:ZOOM_STEP_NM;
-    qreal min_scale_step = (getMeasurementUnit()==metric)?ZOOM_DENSE_STEP_KM:ZOOM_DENSE_STEP_NM;
-    qreal min_scale_dist = (getMeasurementUnit()==metric)?ZOOM_DENSE_STEP_KM:ZOOM_DENSE_STEP_NM;
-    const qreal stopZoomScale = (getMeasurementUnit()==metric)?
+    qreal scale_step = (getMeasurementUnit()==MeasurementUnit::metric)?ZOOM_STEP_KM:ZOOM_STEP_NM;
+    qreal dist = (getMeasurementUnit()==MeasurementUnit::metric)?ZOOM_STEP_KM:ZOOM_STEP_NM;
+    qreal min_scale_step = (getMeasurementUnit()==MeasurementUnit::metric)?ZOOM_DENSE_STEP_KM:ZOOM_DENSE_STEP_NM;
+    qreal min_scale_dist = (getMeasurementUnit()==MeasurementUnit::metric)?ZOOM_DENSE_STEP_KM:ZOOM_DENSE_STEP_NM;
+    const qreal stopZoomScale = (getMeasurementUnit()==MeasurementUnit::metric)?
                                 zoomScaleMaxLengthKm[zoomScale]:
                                 zoomScaleMaxLengthNm[zoomScale];
 
@@ -214,7 +209,7 @@ void Ppi::repaintMesh() {
         qreal gap = (dist==stopZoomScale)?2.0:6.0; // Last text element less shifted
 
         QGraphicsSimpleTextItem *rightLabel = ppiScene->addSimpleText(
-                QString("%1").arg(dist/((getMeasurementUnit()==metric)?1000.0:NM*1000.0))
+                QString("%1").arg(dist/((getMeasurementUnit()==MeasurementUnit::metric)?1000.0:NM*1000.0))
         );
         QFont labelFont = rightLabel->font();
         labelFont.setPointSize(labelFont.pointSize()/desktopScale);
@@ -226,7 +221,7 @@ void Ppi::repaintMesh() {
         meshText.append(rightLabel);
 
         QGraphicsSimpleTextItem *leftLabel = ppiScene->addSimpleText(
-                QString("%1").arg(dist/((getMeasurementUnit()==metric)?1000.0:NM*1000.0))
+                QString("%1").arg(dist/((getMeasurementUnit()==MeasurementUnit::metric)?1000.0:NM*1000.0))
         );
         leftLabel->setFont(labelFont);
         leftLabel->setBrush(MESH_TEXT);
@@ -253,7 +248,7 @@ void Ppi::repaintMesh() {
         qreal penWidth;
         if (i % 9 != 0) {
             radialFrom =
-                    zoomScaleFactor * ((getMeasurementUnit() == metric) ? ZOOM_STEP_KM : ZOOM_STEP_NM) /
+                    zoomScaleFactor * ((getMeasurementUnit() == MeasurementUnit::metric) ? ZOOM_STEP_KM : ZOOM_STEP_NM) /
                     (4.0 * PULSE_LENGTH);
         } else {
             radialFrom = 0.0;
@@ -317,24 +312,28 @@ void Ppi::repaintMesh() {
 }
 
 const QVector<qreal> &Ppi::getZoomScales() const {
-    return (measurementUnit==metric)?zoomScaleMaxLengthKm:zoomScaleMaxLengthNm;
+    return (measurementUnit==MeasurementUnit::metric)?zoomScaleMaxLengthKm:zoomScaleMaxLengthNm;
 }
 
 void Ppi::setPpiBackground(const QBrush &brush) {
     setBackgroundBrush(brush);
     ppiScene->setBackgroundBrush(brush);
+    magnifier->setPpiBackground(brush);
 }
 
 void Ppi::drawMesh(bool draw) {
     meshParent->setVisible(draw);
+    magnifier->drawMesh(draw);
 }
 
 void Ppi::drawDenseMesh(bool draw) {
     meshDenseParent->setVisible(draw);
+    magnifier->drawDenseMesh(draw);
 }
 
 void Ppi::drawMeshText(bool draw) {
     meshTextParent->setVisible(draw);
+    magnifier->drawMeshText(draw);
 }
 
 void Ppi::changeScanIndicator(ScanIndicatorType indicatorType)
@@ -342,21 +341,22 @@ void Ppi::changeScanIndicator(ScanIndicatorType indicatorType)
     if (indicatorType==scanIndicatorType) {
         return;
     }
-    if (scanIndicatorType==line) {
+    if (scanIndicatorType==ScanIndicatorType::line) {
         scanIndicator.line->setVisible(false);
-    } else if (scanIndicatorType==dots) {
+    } else if (scanIndicatorType==ScanIndicatorType::dots) {
         scanIndicator.dots->setVisible(false);
-    } else if (scanIndicatorType==pointer) {
+    } else if (scanIndicatorType==ScanIndicatorType::pointer) {
         scanIndicator.pointer->setVisible(false);
     }
-    if (indicatorType==line) {
+    if (indicatorType==ScanIndicatorType::line) {
         scanIndicator.line->setVisible(true);
-    } else if (indicatorType==dots) {
+    } else if (indicatorType==ScanIndicatorType::dots) {
         scanIndicator.dots->setVisible(true);
-    } else if (indicatorType==pointer) {
+    } else if (indicatorType==ScanIndicatorType::pointer) {
         scanIndicator.pointer->setVisible(true);
     }
     scanIndicatorType = indicatorType;
+    magnifier->changeScanIndicator(indicatorType);
 }
 
 void Ppi::scanIndicatorRotate(qreal angle)
@@ -364,6 +364,7 @@ void Ppi::scanIndicatorRotate(qreal angle)
     scanIndicatorParent->setTransform(
             QTransform().rotate(angle)
     );
+    magnifier->scanIndicatorRotate(angle);
 }
 
 void Ppi::resizeEvent(QResizeEvent * event)

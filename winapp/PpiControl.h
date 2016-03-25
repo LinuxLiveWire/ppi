@@ -18,12 +18,12 @@ class PpiControl: public QWidget {
     Q_OBJECT
 signals:
     void zoomScaleChanged(quint8);
-    void measurementUnitChanged(Ppi::MeasurementUnit);
+    void measurementUnitChanged(MeasurementUnit);
     void rotateScanIndicator(qreal);
 public:
     PpiControl(Ppi*, QWidget* parent = 0);
     void setZoomScale(quint8);
-    void setMeasurementUnit(Ppi::MeasurementUnit);
+    void setMeasurementUnit(MeasurementUnit);
 protected:
     void onMetricChanged();
 private:

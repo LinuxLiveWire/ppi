@@ -183,7 +183,6 @@ void Magnifier::repaintMesh() {
         rightLabel->setPos(qreal(radius)*zoomScaleFactor-bRect.width()-bRect.height()/gap, 0);
         rightLabel->setData(0, QVariant::fromValue(rightLabel->pos().toPoint()));
         rightLabel->setData(1, QVariant::fromValue(bRect.width()));
-        rightLabel->setData(2, QVariant::fromValue(true));
         rightLabel->setParentItem(meshTextParent);
         meshText.append(rightLabel);
 
@@ -195,7 +194,6 @@ void Magnifier::repaintMesh() {
         leftLabel->setPos(-qreal(radius)*zoomScaleFactor+bRect.height()/gap, -bRect.height());
         leftLabel->setData(0, QVariant::fromValue(leftLabel->pos().toPoint()));
         leftLabel->setData(1, QVariant::fromValue(bRect.width()));
-        leftLabel->setData(2, QVariant::fromValue(false));
         leftLabel->setParentItem(meshTextParent);
         meshText.append(leftLabel);
         dist += scale_step;
@@ -207,7 +205,6 @@ void Magnifier::repaintMesh() {
     QFont labelFont = textSample.font();
     labelFont.setPointSize(labelFont.pointSize()/desktopScale);
     textSample.setFont(labelFont);
-    fontPointSize = labelFont.pointSize();
     QRectF br = textSample.boundingRect(); // Rescaled text border
 
     QGraphicsLineItem *  azimuthalLine;
@@ -278,6 +275,7 @@ void Magnifier::repaintMesh() {
                           sceneRect().center().y() + PPI_RADIUS - br.height() / 2)
             );
         }
+        azimuthalTextBg->setData(0,QVariant::fromValue(azimuthalTextBg->transform()));
         meshText.append(azimuthalTextBg);
     }
 }
@@ -330,31 +328,41 @@ void Magnifier::wheelEvent(QWheelEvent * event)
     } else {
         setTransform(transform().scale(0.95, 0.95));
         currMatrix = transform().toAffine();
-        if (currMatrix.m11()<minZoom.m11() || currMatrix.m22()<minZoom.m22()) {
+        if (currMatrix.m11()<origZoom.m11() || currMatrix.m22()<origZoom.m22()) {
             setVisible(false);
         }
     }
+    zoom_step(currMatrix);
+}
+
+void Magnifier::zoom_step(const QMatrix& newMatrix)
+{
     for(QGraphicsItem* textItem: meshText){
         QGraphicsSimpleTextItem *  label = dynamic_cast<QGraphicsSimpleTextItem*>(textItem);
-        if (!label) {
+        if (label) {
+            QPointF origPos = label->data(0).toPoint();
+            qreal origWidth = label->data(1).toReal();
+            label->setTransform(
+                    QTransform().scale(origZoom.m11() / newMatrix.m11(), origZoom.m11() / newMatrix.m11())
+            );
+            QPointF curPos = label->pos();
+            if (origPos.x() > 0.0) {
+                curPos.setX(origPos.x() + (origWidth * (1.0 - origZoom.m22() / newMatrix.m22())));
+            }
+            curPos.setY(origPos.y() * (origZoom.m22() / newMatrix.m22()));
+            label->setPos(curPos);
             continue;
         }
-        QRectF br, oldBr;
-        QPointF origPos = label->data(0).toPoint();
-        qreal origWidth = label->data(1).toReal();
-        bool isRight = label->data(2).toBool();
-        QFont labelFont = label->font();
-        oldBr = label->boundingRect();
-        //labelFont.setPointSize(qreal(fontPointSize)*(minZoom.m11()/currMatrix.m11()));
-        labelFont.setPointSize(qCeil(qreal(fontPointSize)*(minZoom.m11()/currMatrix.m11())));
-        label->setFont(labelFont);
-        br = label->boundingRect();
-        QPointF curPos = label->pos();
-        if (isRight) {
-            curPos.setX(origPos.x()+(origWidth-br.width()));
+        QGraphicsPathItem *  pathItem = dynamic_cast<QGraphicsPathItem*>(textItem);
+        /*
+        if (pathItem) {
+            QTransform origTrans(pathItem->data(0).value<QTransform>());
+            pathItem->setTransform(
+                    origTrans.scale(origZoom.m11()/newMatrix.m11(), origZoom.m22()/newMatrix.m22())
+            );
+            continue;
         }
-        curPos.setY(origPos.y()*(minZoom.m22()/currMatrix.m22()));
-        label->setPos(curPos);
+        */
     }
 }
 
@@ -386,7 +394,7 @@ void Magnifier::mouseReleaseEvent(QMouseEvent * event)
 
 void Magnifier::saveMatrix(const QMatrix& matrix)
 {
-    minZoom = matrix;
+    origZoom = matrix;
 }
 
 void Magnifier::changeScanIndicator(ScanIndicatorType indicatorType)
