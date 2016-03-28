@@ -4,9 +4,7 @@
 
 #include <QApplication>
 #include <QDesktopWidget>
-#include <QtMath>
 #include <QGraphicsItem>
-#include <QDebug>
 #include "Magnifier.h"
 
 Magnifier::Magnifier(QWidget * parent):
@@ -35,6 +33,8 @@ Magnifier::Magnifier(QWidget * parent):
     setRenderHint( QPainter::SmoothPixmapTransform, false );
     setTransformationAnchor( QGraphicsView::AnchorViewCenter );
     setViewportUpdateMode(QGraphicsView::MinimalViewportUpdate);
+    //setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    //setViewportUpdateMode(QGraphicsView::SmartViewportUpdate);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     //setWindowFlags(windowFlags()|Qt::Window|Qt::FramelessWindowHint);
@@ -63,7 +63,7 @@ void Magnifier::scene_initialize()
     meshParent->setOpacity(1.0);
     meshDenseParent = new QGraphicsRectItem();
     meshDenseParent->setOpacity(1.0);
-    meshDenseParent->setZValue(20.0);
+    meshDenseParent->setZValue(10.0);
     meshDenseParent->setParentItem(meshParent);
     meshTextParent = new QGraphicsRectItem();
     meshTextParent->setFlags(
@@ -72,7 +72,7 @@ void Magnifier::scene_initialize()
             QGraphicsItem::ItemHasNoContents
     );
     meshTextParent->setOpacity(1.0);
-    meshTextParent->setZValue(30.0);
+    meshTextParent->setZValue(20.0);
     meshTextParent->setParentItem(meshParent);
 
     scanIndicatorParent = new QGraphicsRectItem();
@@ -130,6 +130,8 @@ void Magnifier::repaintMesh() {
 
     QPainterPath scanIndicatorPoints;
 
+    QMatrix currZoom = transform().toAffine();
+    qreal factor = origZoom.m11()/currZoom.m11();
     for (quint32 i = 1; dist <= stopZoomScale; ++i) {
         quint32 radius = dist/PULSE_LENGTH;
         qreal penWidth;
@@ -145,7 +147,7 @@ void Magnifier::repaintMesh() {
         QGraphicsEllipseItem *zoneRing = ppiScene->addEllipse(zoneRect, QPen(MESH_COLOR, penWidth, Qt::SolidLine));
         zoneRing->setOpacity(1.0);
         zoneRing->setParentItem(meshParent);
-        zoneRing->setZValue(10.0);
+        zoneRing->setZValue(15.0);
         meshFiber.append(zoneRing);
 
         scanIndicatorPoints.addEllipse(
@@ -164,14 +166,13 @@ void Magnifier::repaintMesh() {
             );
             minZoneRing->setOpacity(1.0);
             minZoneRing->setParentItem(meshDenseParent);
-            minZoneRing->setZValue(10.0);
+            minZoneRing->setZValue(15.0);
             meshFiber.append(minZoneRing);
             min_scale_dist += min_scale_step;
         }
         min_scale_dist = dist + min_scale_step;
 
-        qreal gap = (dist==stopZoomScale)?2.0:6.0; // Last text element less shifted
-
+        qreal gap = (dist==stopZoomScale)?2.0:1.0; // Last text element less shifted
         QGraphicsSimpleTextItem *rightLabel = ppiScene->addSimpleText(
                 QString("%1").arg(dist/((getMeasurementUnit()==MeasurementUnit::metric)?1000.0:NM*1000.0))
         );
@@ -180,9 +181,14 @@ void Magnifier::repaintMesh() {
         rightLabel->setFont(labelFont);
         rightLabel->setBrush(MESH_TEXT);
         QRectF bRect = rightLabel->boundingRect();
-        rightLabel->setPos(qreal(radius)*zoomScaleFactor-bRect.width()-bRect.height()/gap, 0);
-        rightLabel->setData(0, QVariant::fromValue(rightLabel->pos().toPoint()));
-        rightLabel->setData(1, QVariant::fromValue(bRect.width()));
+        rightLabel->setTransform(
+                QTransform().translate(sceneRect().center().x(), sceneRect().center().y()).\
+                        scale(factor, factor).
+                        translate(qreal(radius)*zoomScaleFactor/factor-(bRect.width()+gap*bRect.height()/4.), 0)
+        );
+        rightLabel->setData(0, QVariant::fromValue(bRect));
+        rightLabel->setData(1, QVariant::fromValue(gap));
+        rightLabel->setData(2, QVariant::fromValue(radius));
         rightLabel->setParentItem(meshTextParent);
         meshText.append(rightLabel);
 
@@ -191,9 +197,14 @@ void Magnifier::repaintMesh() {
         );
         leftLabel->setFont(labelFont);
         leftLabel->setBrush(MESH_TEXT);
-        leftLabel->setPos(-qreal(radius)*zoomScaleFactor+bRect.height()/gap, -bRect.height());
-        leftLabel->setData(0, QVariant::fromValue(leftLabel->pos().toPoint()));
-        leftLabel->setData(1, QVariant::fromValue(bRect.width()));
+        leftLabel->setTransform(
+                QTransform().translate(sceneRect().center().x(), sceneRect().center().y()).\
+                        scale(factor, factor).
+                        translate(-qreal(radius)*zoomScaleFactor/factor+gap*bRect.height()/4.0, -bRect.height())
+        );
+        leftLabel->setData(0, QVariant::fromValue(bRect));
+        leftLabel->setData(1, QVariant::fromValue(gap));
+        leftLabel->setData(2, QVariant::fromValue(radius));
         leftLabel->setParentItem(meshTextParent);
         meshText.append(leftLabel);
         dist += scale_step;
@@ -216,7 +227,7 @@ void Magnifier::repaintMesh() {
         qreal penWidth;
         if (i % 9 != 0) {
             radialFrom =
-                    zoomScaleFactor * ((getMeasurementUnit() == MeasurementUnit::metric) ? ZOOM_STEP_KM : ZOOM_STEP_NM) /
+                    zoomScaleFactor*((getMeasurementUnit()==MeasurementUnit::metric)?ZOOM_STEP_KM:ZOOM_STEP_NM)/
                     (4.0 * PULSE_LENGTH);
         } else {
             radialFrom = 0.0;
@@ -240,13 +251,16 @@ void Magnifier::repaintMesh() {
         );
         azimuthalLine->setOpacity(1.0);
         azimuthalLine->setParentItem(meshParent);
-        azimuthalLine->setZValue(10.0); // !!! - set value less than for all meshTextParent childs
+        azimuthalLine->setZValue(15.0); // !!! - set value less than for all meshTextParent childs
         meshFiber.append(azimuthalLine);
         azimuthalTextBg = new QGraphicsPathItem();
         azimuthalTextBg->setOpacity(1.0);
-        azimuthalTextBg->setBrush(scene()->backgroundBrush());
+        //azimuthalTextBg->setBrush(scene()->backgroundBrush());
+        azimuthalTextBg->setBrush(Qt::black);
         azimuthalTextBg->setPen(QPen(MESH_COLOR, PEN_WIDTH_THIN, Qt::SolidLine));
         azimuthalTextBg->setParentItem(meshTextParent);
+        azimuthalTextBg->setData(0, QVariant::fromValue(azimuth));
+        azimuthalTextBg->setZValue(30.0);
 
         QPainterPath roundRect;
         roundRect.addRoundedRect(br - QMargins(-4, 2, -4, 2), 24, 24);
@@ -256,26 +270,29 @@ void Magnifier::repaintMesh() {
         azimuthalText->setParentItem(azimuthalTextBg);
         azimuthalText->setFont(labelFont);
         azimuthalText->setBrush(MESH_TEXT);
+        azimuthalText->setZValue(35.0);
         azimuthalText->setPos((br.width()-azimuthalText->boundingRect().width())/2, 0);
 
         if (azimuth >= 270 || azimuth <= 90) {
             azimuthalTextBg->setTransform(
                     azimuthalText->transform().\
                 translate(sceneRect().center().x(), sceneRect().center().y()).\
+                scale(factor, factor).\
                 rotate(azimuth).\
-                translate(sceneRect().center().x() - br.width() / 2.0,
-                          sceneRect().center().y() - PPI_RADIUS - br.height() / 2)
+                translate(sceneRect().center().x() - br.width()/2.0,
+                          (sceneRect().center().y() - PPI_RADIUS/factor - br.height()/2))
             );
         } else {
             azimuthalTextBg->setTransform(
                     azimuthalText->transform().\
                 translate(sceneRect().center().x(), sceneRect().center().y()).\
+                scale(factor, factor).\
                 rotate(180.+azimuth).\
                 translate(sceneRect().center().x() - br.width() / 2.0,
-                          sceneRect().center().y() + PPI_RADIUS - br.height() / 2)
+                          sceneRect().center().y() + PPI_RADIUS/factor - br.height()/2)
             );
         }
-        azimuthalTextBg->setData(0,QVariant::fromValue(azimuthalTextBg->transform()));
+        azimuthalTextBg->setData(1, QVariant::fromValue(azimuthalTextBg->transform()));
         meshText.append(azimuthalTextBg);
     }
 }
@@ -337,32 +354,60 @@ void Magnifier::wheelEvent(QWheelEvent * event)
 
 void Magnifier::zoom_step(const QMatrix& newMatrix)
 {
+    QGraphicsSimpleTextItem textSample(QString("%1").arg(360)); // for font metric only
+    QFont labelFont = textSample.font();
+    labelFont.setPointSize(labelFont.pointSize()/desktopScale);
+    textSample.setFont(labelFont);
+    QRectF br = textSample.boundingRect(); // Rescaled text border
+
     for(QGraphicsItem* textItem: meshText){
         QGraphicsSimpleTextItem *  label = dynamic_cast<QGraphicsSimpleTextItem*>(textItem);
         if (label) {
-            QPointF origPos = label->data(0).toPoint();
-            qreal origWidth = label->data(1).toReal();
-            label->setTransform(
-                    QTransform().scale(origZoom.m11() / newMatrix.m11(), origZoom.m11() / newMatrix.m11())
-            );
-            QPointF curPos = label->pos();
-            if (origPos.x() > 0.0) {
-                curPos.setX(origPos.x() + (origWidth * (1.0 - origZoom.m22() / newMatrix.m22())));
+            QTransform currMatrix(label->transform());
+            quint32 radius = label->data(2).toUInt();
+            qreal gap = label->data(1).toReal();
+            QRectF origRect = label->data(0).toRectF();
+            qreal factor = origZoom.m11()/newMatrix.m11();
+            if (currMatrix.m31()>0) {
+                label->setTransform(
+                        QTransform().translate(sceneRect().center().x(), sceneRect().center().y()).\
+                        scale(origZoom.m11()/newMatrix.m11(), origZoom.m22()/newMatrix.m22()).\
+                        translate(qreal(radius)*zoomScaleFactor/factor-(origRect.width()+gap*origRect.height()/4.), 0)
+                );
+            } else {
+                label->setTransform(
+                        QTransform().translate(sceneRect().center().x(), sceneRect().center().y()).\
+                        scale(origZoom.m11()/newMatrix.m11(), origZoom.m22()/newMatrix.m22()).\
+                        translate(-qreal(radius)*zoomScaleFactor/factor+gap*origRect.height()/4.0, -origRect.height())
+                );
             }
-            curPos.setY(origPos.y() * (origZoom.m22() / newMatrix.m22()));
-            label->setPos(curPos);
             continue;
         }
         QGraphicsPathItem *  pathItem = dynamic_cast<QGraphicsPathItem*>(textItem);
-        /*
         if (pathItem) {
-            QTransform origTrans(pathItem->data(0).value<QTransform>());
-            pathItem->setTransform(
-                    origTrans.scale(origZoom.m11()/newMatrix.m11(), origZoom.m22()/newMatrix.m22())
-            );
+            //QTransform origTrans(pathItem->data(0).value<QTransform>());
+            qreal azimuth = pathItem->data(0).toReal();
+            if (azimuth >= 270 || azimuth <= 90) {
+                pathItem->setTransform(
+                        QTransform().\
+                translate(sceneRect().center().x(), sceneRect().center().y()).\
+                scale(origZoom.m11() / newMatrix.m11(), origZoom.m11() / newMatrix.m11()).\
+                rotate(azimuth).\
+                translate(sceneRect().center().x() - br.width() / 2.0,
+                          sceneRect().center().y() - (PPI_RADIUS)/(origZoom.m11()/newMatrix.m11()) - br.height()/2)
+                );
+            } else {
+                pathItem->setTransform(
+                        QTransform().\
+                translate(sceneRect().center().x(), sceneRect().center().y()).\
+                scale(origZoom.m11()/newMatrix.m11(), origZoom.m11()/newMatrix.m11()).\
+                rotate(180.+azimuth).\
+                translate(sceneRect().center().x()-br.width() / 2.0,
+                          sceneRect().center().y() + (PPI_RADIUS)/(origZoom.m11()/newMatrix.m11()) - br.height()/2)
+                );
+            }
             continue;
         }
-        */
     }
 }
 

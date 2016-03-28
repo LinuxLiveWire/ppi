@@ -1,7 +1,6 @@
 //
 // Created by sergey on 10.03.16.
 //
-#include <QDebug>
 #include <QRectF>
 #include <QGraphicsPathItem>
 #include <QApplication>
@@ -48,9 +47,9 @@ Ppi::Ppi(QWidget *parent) :
     scene_initialize();
     repaintMesh();
     magnifier = new Magnifier(this);
+    setPpiBackground(Qt::black);
     magnifier->setVisible(false);
     createConnection();
-    setPpiBackground(Qt::black);
 }
 
 void Ppi::scene_initialize() {
@@ -276,7 +275,8 @@ void Ppi::repaintMesh() {
         meshFiber.append(azimuthalLine);
         azimuthalTextBg = new QGraphicsPathItem();
         azimuthalTextBg->setOpacity(1.0);
-        azimuthalTextBg->setBrush(scene()->backgroundBrush());
+        //azimuthalTextBg->setBrush(scene()->backgroundBrush());
+        azimuthalTextBg->setBrush(Qt::black);
         azimuthalTextBg->setPen(QPen(MESH_COLOR, PEN_WIDTH_THIN, Qt::SolidLine));
         azimuthalTextBg->setParentItem(meshTextParent);
 
